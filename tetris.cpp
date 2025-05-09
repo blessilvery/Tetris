@@ -51,7 +51,7 @@ int block_shape,block_angle,block_x,block_y;
 int next_block_shape;
 int score;
 int lines;
-char total_block[21][14];		//화면에 표시되는 블럭들
+char total_block[24][14];		//화면에 표시되는 블럭들
 struct STAGE stage_data[10];
 char block[7][4][4][4]={		// 4x4 위에 표현, 회전 4개, 7개의 블럭
 	//막대모양
@@ -109,6 +109,8 @@ int main(int argc, char* argv[])
 	show_logo();
 	while(1)
 	{
+
+		is_gameover = 0;
 		input_data();	// 난이도 받음
 		show_total_block();
 		block_shape = make_new_block();	// 막대기일 경우 0
@@ -187,11 +189,6 @@ int main(int argc, char* argv[])
 				show_cur_block(block_shape,block_angle,block_x,block_y);
 			}
 			
-			if (stage_data[level].clear_line == lines)	//클리어 스테이지
-			{
-				level++;
-				lines = 0;
-			}
 			if(is_gameover == 1)
 			{
 				show_gameover();
@@ -235,7 +232,7 @@ int init()
 	srand((unsigned)time(NULL));
 	
 	
-	for(i=0;i<20;i++)
+	for(i=0;i<23;i++)
 	{
 		for(j=0;j<14;j++)
 		{
@@ -250,7 +247,7 @@ int init()
 	}
 
 	for(j=0;j<14;j++)			//화면의 제일 밑의 줄은 1로 채운다.
-		total_block[20][j]=1;
+		total_block[23][j]=1;
 	
 	//전역변수 초기화
 	level=0;
@@ -260,7 +257,7 @@ int init()
 
 	stage_data[0].speed=40;
 	stage_data[0].stick_rate=20;	
-	stage_data[0].clear_line=20;
+	stage_data[0].clear_line=2;	// 꼭 다시 수정하기!
 	stage_data[1].speed=38;
 	stage_data[1].stick_rate=18;
 	stage_data[1].clear_line=20;
@@ -366,11 +363,11 @@ int show_total_block()
 {
 	int i,j;
 	SetColor(DARK_GRAY);
-	for(i=0;i<21;i++)
+	for(i=0;i<24;i++)
 	{
 		for(j=0;j<14;j++)
 		{
-			if(j==0 || j==13 || i==20)		//레벨에 따라 외벽 색이 변함
+			if(j==0 || j==13 || i==23)		//레벨에 따라 외벽 색이 변함
 			{
 				SetColor((level %6) +1);	
 			}
@@ -402,45 +399,50 @@ int make_new_block()
 
 	// 막대기가 아니면?
 	shape = (rand()%6)+1;		//shape에는 1~6의 값이 들어감		0은 막대기
+	//show_next_block(shape);	// ?
 	return shape;
 }
 
-int strike_check(int shape, int angle, int x, int y)
- {
-	int i, j;
+
+int strike_check(int shape,int angle,int x,int y)
+{
+	int i,j;
 	int block_dat;
 
-	for (i = 0; i < 4; i++)
+	// block size 4 x 4
+	for(i=0;i<4;i++)
 	{
-		for (j = 0; j < 4; j++)
+		for(j=0;j<4;j++)
 		{
-			if (y + i < 0) continue; 
-
-			if (((x + j) == 0) || ((x + j) == 13))
+			if(  ((x+j) == 0)  || ((x+j) == 13) )
 				block_dat = 1;
 			else
-				block_dat = total_block[y + i][x + j];
-
-			if ((block_dat == 1) && (block[shape][angle][i][j] == 1))
+				block_dat = total_block[y+i][x+j];
+			
+			//좌측벽의 좌표를 빼기위함
+			if((block_dat == 1) && (block[shape][angle][i][j] == 1))
+			{
 				return 1;
+			}
 		}
 	}
 	return 0;
 }
 
-int merge_block(int shape, int angle, int x, int y)
+int merge_block(int shape,int angle,int x,int y)
 {
-	int i, j;
-	for (i = 0; i < 4; i++)
+	int i,j;
+	for(i=0;i<4;i++)
 	{
-		for (j = 0; j < 4; j++)
+		for(j=0;j<4;j++)
 		{
-			if (y + i >= 0)
-				total_block[y + i][x + j] |= block[shape][angle][i][j];
+			// 서로 값이 다른 부분만 채워넣기
+			total_block[y+i][x+j] |=  block[shape][angle][i][j];
 		}
 	}
 	check_full_line();
 	show_total_block();
+	
 	return 0;
 }
 
@@ -448,7 +450,7 @@ int block_start(int shape,int* angle,int* x,int* y)
 {
 	
 	*x = 5;
-	*y = -3;
+	*y = 0;
 	*angle = 0;
 
 	return 0;	
@@ -480,15 +482,15 @@ int move_block(int* shape,int* angle,int* x,int* y,int* next_shape)
 {
 	erase_cur_block(*shape,*angle,*x,*y);
 	
-	(*y)++;	//블럭을 한칸 아래로 내림
-	if(strike_check(*shape,*angle,*x,*y) == 1)
+	int next_y = *y + 1;	//블럭을 한칸 아래로 내림
+	if(strike_check(*shape,*angle,*x, next_y) == 1)
 	{
-		if(*y<0)	// 블럭이 천장에 닿았으면, 게임오버 
+		if(next_y <4)	// 블럭이 천장에 닿았으면, 게임오버 
 		{
 			
 			return 1;
 		}
-		(*y)--;
+		
 		merge_block(*shape,*angle,*x,*y);
 		*shape = *next_shape;
 		*next_shape = make_new_block();
@@ -497,6 +499,7 @@ int move_block(int* shape,int* angle,int* x,int* y,int* next_shape)
 		show_next_block(*next_shape);
 		return 2;
 	}
+	*y = next_y;
 	return 0;
 }
 
@@ -507,42 +510,46 @@ int rotate_block(int shape,int* angle,int* x,int* y)
 
 int check_full_line()
 {
-	int i,j,k;
-	for(i=0;i<20;i++)
+	int i, j, k;
+	for (i = 3; i < 23; i++)
 	{
-		for(j=1;j<13;j++)
+		for (j = 1; j < 13; j++)
 		{
-			if(total_block[i][j] == 0)
+			if (total_block[i][j] == 0)
 				break;
 		}
-		if(j == 13)	//한줄이 다 채워졌음
+		if (j == 13)	//한줄이 다 채워졌음
 		{
 			lines++;
 			show_total_block();
 			SetColor(BLUE);
-			gotoxy(1*2+ab_x,i+ab_y);
-			for(j=1;j<13;j++)
+			gotoxy(1 * 2 + ab_x, i + ab_y);
+			for (j = 1; j < 13; j++)
 			{
 				printf("□");
 				Sleep(10);
 			}
-			gotoxy(1*2+ab_x,i+ab_y);
-			for(j=1;j<13;j++)
+			gotoxy(1 * 2 + ab_x, i + ab_y);
+			for (j = 1; j < 13; j++)
 			{
 				printf("  ");
 				Sleep(10);
 			}
 
-			for(k=i;k>0;k--)
+			for (k = i; k > 0; k--)
 			{
-				for(j=1;j<13;j++)
-					total_block[k][j] = total_block[k-1][j];
+				for (j = 1; j < 13; j++)
+					total_block[k][j] = total_block[k - 1][j];
 			}
-
-			
-			for(j=1;j<13;j++)
+			for (j = 1; j < 13; j++)
 				total_block[0][j] = 0;
-			score+= 100+(level*10) + (rand()%10);	
+
+			score += 100 + (level * 10) + (rand() % 10);
+			if (stage_data[level].clear_line == lines)	//클리어 스테이지
+			{
+				level++;
+				lines = 0;
+			}
 			show_gamestat();
 		}
 	}
@@ -693,7 +700,7 @@ int show_logo()
 		Sleep(30);
 	}
 	
-	//_getche();	// 이게 왜 있는지 몰겟네
+	_getche();
 	system("cls");
 
 	return 0;
