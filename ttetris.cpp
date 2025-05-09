@@ -126,13 +126,13 @@ int main(int argc, char* argv[])
 					switch (keytemp)
 					{
 					case KEY_UP:		//회전하기
-
-						if (strike_check(block_shape, (block_angle + 1) % 4, block_x, block_y) == 0)
+						rotate_block(block_shape, &block_angle, &block_x, &block_y);
+						/*if(strike_check(block_shape,(block_angle+1)%4,block_x,block_y) == 0)
 						{
-							erase_cur_block(block_shape, block_angle, block_x, block_y);
-							block_angle = (block_angle + 1) % 4;
-							show_cur_block(block_shape, block_angle, block_x, block_y);
-						}
+							erase_cur_block(block_shape,block_angle,block_x,block_y);
+							block_angle = (block_angle+1)%4;
+							show_cur_block(block_shape,block_angle,block_x,block_y);
+						}*/
 						break;
 					case KEY_LEFT:		//왼쪽으로 이동
 						if (block_x > 1)
@@ -146,7 +146,6 @@ int main(int argc, char* argv[])
 						}
 						break;
 					case KEY_RIGHT:		//오른쪽으로 이동
-
 						if (block_x < 14)
 						{
 							erase_cur_block(block_shape, block_angle, block_x, block_y);
@@ -486,8 +485,21 @@ int move_block(int* shape, int* angle, int* x, int* y, int* next_shape)
 	return 0;
 }
 
-int rotate_block(int shape, int* angle, int* x, int* y)
+int rotate_block(int shape, int* angle, int* x, int* y) // 모든 경우 도형을 회전시킬 수 있는 rotate_block 함수
 {
+	int rx = *x;
+	while (rx > 0) {
+		if (strike_check(shape, (*angle + 1) % 4, rx, (*y)) == 0) {
+			erase_cur_block(shape, *angle, *x, *y);
+			*angle = (*angle + 1) % 4;
+			*x = rx;
+			show_cur_block(shape, *angle, *x, *y);
+			return 1;
+		}
+		else {
+			rx--;
+		}
+	}
 	return 0;
 }
 
